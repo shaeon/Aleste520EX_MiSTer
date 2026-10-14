@@ -44,9 +44,13 @@ Poseidon/SiDi. The real-time clock is set from the MiSTer clock.
 
 ## Differences from the MiST version
 
-- Only the CPC-mode video (15 kHz, real CRTC timing) is output, through the
-  MiSTer scaler. The native Aleste LX video (720x480) is used only for the
-  short native boot and the test files (SCRBIN/WBS), and is not shown.
+- Both videos are shown, chosen by the CPU mode as on MiST: the CPC-mode
+  video (15 kHz, real CRTC timing) and the native Aleste LX video (720x480,
+  31 kHz: native boot and the test files). MiSTer takes all the video through
+  a single `CLK_VIDEO`, so the native video (27 MHz clock) is moved to the
+  80 MHz CPC video clock by `rtl/native_resync.sv`, a one-line buffer locked
+  to the input lines (a few pixels of delay). Scandoubler and scanlines only
+  apply to the CPC video.
 - *Scanlines* is replaced by MiSTer's *Scandoubler Fx*; *Aspect ratio* is new.
   The other options keep the same `status` bits as on MiST.
 - File downloads are paced with `ioctl_wait` (one byte every `LOAD_GAP` cycles

@@ -45,10 +45,13 @@ MiSTer.
 
 ## Diferencias con la versión de MiST
 
-- Solo sale el vídeo del modo CPC (15 kHz, temporización real del CRTC), por
-  el escalador de MiSTer. El vídeo nativo del Aleste LX (720x480) solo se usa
-  en el breve arranque nativo y con los ficheros de prueba (SCRBIN/WBS), y no
-  se muestra.
+- Salen los dos vídeos, elegidos por el modo de la CPU como en MiST: el del
+  modo CPC (15 kHz, temporización real del CRTC) y el nativo del Aleste LX
+  (720x480 a 31 kHz: arranque nativo y ficheros de prueba). MiSTer recibe
+  todo el vídeo por un solo `CLK_VIDEO`, así que el nativo (reloj de 27 MHz)
+  pasa al reloj de 80 MHz del vídeo CPC con `rtl/native_resync.sv`, un búfer
+  de una línea enganchado a las líneas de entrada (unos pocos píxeles de
+  retraso). El doblador y las scanlines solo se aplican al vídeo CPC.
 - *Scanlines* se sustituye por el *Scandoubler Fx* de MiSTer; *Aspect ratio*
   es nueva. Las demás opciones conservan los mismos bits de `status` que en
   MiST.

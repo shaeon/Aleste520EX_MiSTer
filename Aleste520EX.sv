@@ -264,6 +264,8 @@ ltc2308_tape ltc2308_tape
 ///////////////////////   NUCLEO   ////////////////////////////////
 
 wire        cpu_legacy;
+wire [11:0] nat_rgb;
+wire        nat_hs, nat_vs, nat_hblank, nat_vblank;
 wire        cpc_ce_pix, cpc_hs, cpc_vs, cpc_hblank, cpc_vblank, cpc_hires;
 wire  [7:0] cpc_r, cpc_g, cpc_b;
 wire [15:0] audio_l, audio_r;
@@ -308,13 +310,13 @@ aleste_core core
 	.sdram_nwe(SDRAM_nWE),
 	.sdram_cke(SDRAM_CKE),
 
-	// Video nativo del Aleste LX (720x480, clk_pixel): solo en el arranque
-	// nativo y en las pruebas; en MiSTer no se saca (ver README).
-	.vga_rgb(),
-	.vga_hs(),
-	.vga_vs(),
-	.vga_hblank(),
-	.vga_vblank(),
+	// Video nativo del Aleste LX (720x480, clk_pixel): arranque nativo y
+	// pruebas. Pasa a clk_vid con native_resync (ver VIDEO).
+	.vga_rgb(nat_rgb),
+	.vga_hs(nat_hs),
+	.vga_vs(nat_vs),
+	.vga_hblank(nat_hblank),
+	.vga_vblank(nat_vblank),
 
 	.cpc_ce_pix(cpc_ce_pix),
 	.cpc_r(cpc_r),
@@ -401,10 +403,56 @@ sdramclk_ddr
 );
 
 ///////////////////////   VIDEO   /////////////////////////////////
-// Video del modo CPC: 15 kHz con la temporizacion del CRTC, en clk_vid
-// (80 MHz). cpc_ce_pix es el pixel: 80/5 = 16 MHz en los modos del CPC y
-// 80/6 = 13,33 MHz en la alta resolucion del 520EX; el doblador de MiSTer
-// mide el periodo del ce en cada linea, asi que admite los dos.
+// Dos videos, como en MiST, elegidos con cpu_legacy:
+//  - Modo CPC (uso normal): 15 kHz con la temporizacion del CRTC, en clk_vid
+//    (80 MHz). cpc_ce_pix es el pixel: 80/5 = 16 MHz en los modos del CPC y
+//    80/6 = 13,33 MHz en la alta resolucion del 520EX; el doblador de MiSTer
+//    mide el periodo del ce en cada linea, asi que admite los dos.
+//  - Nativo del Aleste LX (arranque nativo y pruebas): 720x480 a 31 kHz en
+//    clk_pixel. native_resync lo pasa a clk_vid con un bufer de una linea
+//    enganchado a la entrada (pixel de 80/3 = 26,67 MHz, retraso de unos
+//    pocos pixeles). Ya es de 31 kHz: con el se apaga el doblador.
+// En MiSTer todo el video entra por un solo CLK_VIDEO, por eso no basta el
+// multiplexor de pines de MiST.
+
+wire       nat_ce;
+wire [7:0] nat_r, nat_g, nat_b;
+wire       nat_hs_o, nat_vs_o, nat_hb_o, nat_vb_o;
+
+native_resync native_resync
+(
+	.clk_pixel(clk_pixel),
+	.in_rgb(nat_rgb),
+	.in_hs(nat_hs),
+	.in_vs(nat_vs),
+	.in_hblank(nat_hblank),
+	.in_vblank(nat_vblank),
+
+	.clk_vid(clk_vid),
+	.ce_pix(nat_ce),
+	.r(nat_r),
+	.g(nat_g),
+	.b(nat_b),
+	.hs(nat_hs_o),
+	.vs(nat_vs_o),
+	.hblank(nat_hb_o),
+	.vblank(nat_vb_o)
+);
+
+// Que video se muestra: el del CPC con la CPU en modo CPC, el nativo si no.
+// Cambia muy pocas veces (al arrancar una ROM); el escalador se resincroniza.
+reg [1:0] legacy_s;
+always @(posedge clk_vid) legacy_s <= {legacy_s[0], cpu_legacy};
+wire sel_cpc = legacy_s[1];
+
+wire       vid_ce  = sel_cpc ? cpc_ce_pix : nat_ce;
+wire [7:0] vid_r   = sel_cpc ? cpc_r      : nat_r;
+wire [7:0] vid_g   = sel_cpc ? cpc_g      : nat_g;
+wire [7:0] vid_b   = sel_cpc ? cpc_b      : nat_b;
+wire       vid_hs  = sel_cpc ? cpc_hs     : nat_hs_o;
+wire       vid_vs  = sel_cpc ? cpc_vs     : nat_vs_o;
+wire       vid_hb  = sel_cpc ? cpc_hblank : nat_hb_o;
+wire       vid_vb  = sel_cpc ? cpc_vblank : nat_vb_o;
 
 wire [1:0] ar = status[122:121];
 assign VIDEO_ARX = (!ar) ? 13'd4 : (ar - 1'd1);
@@ -412,7 +460,7 @@ assign VIDEO_ARY = (!ar) ? 13'd3 : 13'd0;
 
 wire [2:0] scale = status[23:21];
 wire [2:0] sl = scale ? scale - 1'd1 : 3'd0;
-assign VGA_SL = sl[1:0];
+assign VGA_SL = sel_cpc ? sl[1:0] : 2'd0;   // el nativo ya es de 31 kHz
 
 assign CLK_VIDEO = clk_vid;
 
@@ -420,20 +468,20 @@ video_mixer #(.LINE_LENGTH(800), .GAMMA(1)) video_mixer
 (
 	.CLK_VIDEO(CLK_VIDEO),
 	.CE_PIXEL(CE_PIXEL),
-	.ce_pix(cpc_ce_pix),
+	.ce_pix(vid_ce),
 
-	.scandoubler(scale || forced_scandoubler),
+	.scandoubler(sel_cpc && (scale || forced_scandoubler)),
 	.hq2x(scale == 1),
 	.gamma_bus(gamma_bus),
 
-	.R(cpc_r),
-	.G(cpc_g),
-	.B(cpc_b),
+	.R(vid_r),
+	.G(vid_g),
+	.B(vid_b),
 
-	.HSync(cpc_hs),
-	.VSync(cpc_vs),
-	.HBlank(cpc_hblank),
-	.VBlank(cpc_vblank),
+	.HSync(vid_hs),
+	.VSync(vid_vs),
+	.HBlank(vid_hb),
+	.VBlank(vid_vb),
 
 	.HDMI_FREEZE(HDMI_FREEZE),
 	.freeze_sync(),
