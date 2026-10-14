@@ -1,0 +1,3 @@
+[submodule "rtl/aleste520ex"]
+	path = rtl/aleste520ex
+	url = https://github.com/shaeon/aleste520ex.git

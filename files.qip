@@ -1,0 +1,57 @@
+# Aleste 520EX para MiSTer
+#
+# El nucleo viene del submodulo rtl/aleste520ex (github.com/shaeon/aleste520ex),
+# que no se modifica. NO se incluye su files.qip: trae los modulos de MiST
+# (user_io, osd, mist_video...) y su entidad superior, que chocarian con sys/.
+# La lista es la de aleste520ex/files.qip sin mist-modules, dac.vhd ni
+# aleste_mist_top.sv.
+#
+# Las tablas .mem de la paleta ($readmemh) las copia rtl/pre_flow.tcl a la
+# carpeta del proyecto antes de cada compilacion.
+
+set_global_assignment -name SDC_FILE Aleste520EX.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE Aleste520EX.sv
+set_global_assignment -name QIP_FILE rtl/pll_vid.qip
+
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/reset/reset_controller.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/memory/sdram/sdram_wishbone.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/mc6845mod.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/video/hdmi_scaler/dual_port_ram.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/video/hdmi_scaler/hdmi_scaler.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/cpc_colors.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/video/palette/msx_colors.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/color_palette.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/video/video_buffer/video_buffer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/pixel_pipeline.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/systems/aleste_video/wb_arbiter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/systems/aleste_video/address_decoder.sv
+set_global_assignment -name VERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/cpu/tv80/tv80_core.v
+set_global_assignment -name VERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/cpu/tv80/tv80_reg.v
+set_global_assignment -name VERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/cpu/tv80/tv80_alu.v
+set_global_assignment -name VERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/cpu/tv80/tv80_mcode.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/z80_system.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/io/ppi/i8255_wb.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/systems/aleste_system/z80_debug.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/mmu_legacy.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/systems/aleste_system/system_arbiter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/interconnect/wishbone/wb_wdt_simple.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/memory_arbiter.sv
+set_global_assignment -name VERILOG_FILE rtl/aleste520ex/rtl/tv80lx.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/mmu_native.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/vga_timing.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/video_ctrl_vga.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/mist_loader.sv
+set_global_assignment -name VERILOG_FILE rtl/aleste520ex/rtl/cpc/UM6845R.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/cpc/cpc_video.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/cpc/kbd_520ex.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/cpc/rtc146818.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/cpc/magic_sound.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/cpc/serial_mouse.sv
+set_global_assignment -name VERILOG_FILE rtl/aleste520ex/rtl/cpc/kempston_mouse.v
+set_global_assignment -name VERILOG_FILE rtl/aleste520ex/rtl/cpc/symbiface_mouse.v
+set_global_assignment -name VERILOG_FILE rtl/aleste520ex/rtl/cpc/multiplay_mouse.v
+set_global_assignment -name VERILOG_FILE rtl/aleste520ex/rtl/cpc/amx_mouse.v
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/cpc/tzxplayer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/cpc/u765.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/YM2149.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/aleste_core.sv
