@@ -117,8 +117,9 @@ localparam CONF_STR = {
 // Como en MiST: 108/54/27 MHz del mismo PLL y en fase (el nucleo los trata
 // como sincronos entre si) y 80 MHz para el video del modo CPC en un PLL
 // aparte (asincrono; el nucleo sincroniza todos los cruces).
+// clk_sdram: 108 MHz con desfase para el pin SDRAM_CLK (ver SDRAM).
 
-wire clk_system, clk_bus, clk_pixel;
+wire clk_system, clk_bus, clk_pixel, clk_sdram;
 wire pll_locked;
 
 pll pll
@@ -128,6 +129,7 @@ pll pll
 	.outclk_0(clk_system),   // 108 MHz
 	.outclk_1(clk_bus),      //  54 MHz
 	.outclk_2(clk_pixel),    //  27 MHz
+	.outclk_3(clk_sdram),    // 108 MHz, desfasado (phase_shift3 en rtl/pll)
 	.locked(pll_locked)
 );
 
@@ -272,6 +274,7 @@ wire [15:0] audio_l, audio_r;
 wire        loader_busy, loader_overflow, loader_timeout;
 wire        cpu_running, cpu_halted;
 wire [15:0] sdram_dq_o;
+wire [12:0] sdram_a;
 wire        sdram_dq_oe;
 wire  [1:0] sdram_dqm;
 
@@ -301,7 +304,7 @@ aleste_core core
 	.sdram_dq_i(SDRAM_DQ),
 	.sdram_dq_o(sdram_dq_o),
 	.sdram_dq_oe(sdram_dq_oe),
-	.sdram_a(SDRAM_A),
+	.sdram_a(sdram_a),
 	.sdram_ba(SDRAM_BA),
 	.sdram_dqm(sdram_dqm),
 	.sdram_ncs(SDRAM_nCS),
@@ -370,13 +373,33 @@ aleste_core core
 );
 
 ///////////////////////   SDRAM   /////////////////////////////////
+// Las salidas del controlador (sdram_wishbone, dentro del nucleo) van
+// registradas al pin (FAST_OUTPUT_REGISTER de sys.tcl), salvo A[12:11].
 
 assign SDRAM_DQ   = sdram_dq_oe ? sdram_dq_o : 16'hZZZZ;
 assign SDRAM_DQML = sdram_dqm[0];
 assign SDRAM_DQMH = sdram_dqm[1];
 
-// Reloj de la SDRAM: clk_system invertido, sacado por un registro DDR del
-// propio pin (como en MiST y en el sdram.sv de los cores de MiSTer).
+// DQM por A[12:11]. En parte de los modulos de SDRAM de MiSTer las patas DQM
+// del chip van a las lineas A11/A12 (por eso los cores de MiSTer ponen
+// {SDRAM_DQMH, SDRAM_DQML} = SDRAM_A[12:11]). sdram_wishbone deja en A[12:11]
+// la fila de la orden ACTIVE durante READ/WRITE y las NOP siguientes, y en
+// esos modulos eso enmascararia bytes al azar (lecturas en alta impedancia y
+// escrituras perdidas). A[12:11] solo cuentan como direccion en ACTIVE (fila)
+// y en LOAD MODE; en el resto de ordenes no se usan, y ahi se pone la mascara
+// del controlador. Los modulos con DQM en sus propias patas reciben la misma
+// mascara por SDRAM_DQML/DQMH y no notan el cambio.
+//   ACTIVE    = nRAS 0, nCAS 1, nWE 1
+//   LOAD MODE = nRAS 0, nCAS 0, nWE 0
+wire sdram_row_cmd = ~SDRAM_nCS & ~SDRAM_nRAS & (SDRAM_nCAS == SDRAM_nWE);
+assign SDRAM_A[10:0]  = sdram_a[10:0];
+assign SDRAM_A[12:11] = sdram_row_cmd ? sdram_a[12:11] : {sdram_dqm[1], sdram_dqm[0]};
+
+// Reloj de la SDRAM: clk_sdram (108 MHz, salida 3 del PLL principal con su
+// propio desfase) sacado por un registro DDR del pin, para que tenga el mismo
+// retardo de salida que las ordenes y los datos. El desfase se ajusta en
+// rtl/pll/pll_0002.v (phase_shift3) y el .sdc comprueba las dos direcciones
+// con los tiempos del chip: ver Aleste520EX.sdc.
 altddio_out
 #(
 	.extend_oe_disable("OFF"),
@@ -390,9 +413,9 @@ altddio_out
 )
 sdramclk_ddr
 (
-	.datain_h(1'b0),
-	.datain_l(1'b1),
-	.outclock(clk_system),
+	.datain_h(1'b1),
+	.datain_l(1'b0),
+	.outclock(clk_sdram),
 	.dataout(SDRAM_CLK),
 	.aclr(1'b0),
 	.aset(1'b0),

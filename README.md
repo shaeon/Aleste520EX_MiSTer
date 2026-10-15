@@ -59,6 +59,25 @@ Poseidon/SiDi. The real-time clock is set from the MiSTer clock.
   If the user LED blinks fast after a load (FIFO overflow), raise `LOAD_GAP`
   in `Aleste520EX.sv`.
 
+## SDRAM
+
+The SDRAM controller (`sdram_wishbone`, 108 MHz, CL2) is inside the core; the
+MiSTer glue adds two things so that it works on every MiSTer SDRAM module
+(32, 64 and 128 MB):
+
+- `SDRAM_CLK` comes from its own PLL output (`rtl/pll`, `outclk_3`, 108 MHz,
+  `phase_shift3` = 3472 ps = 135°) through a DDR output register, instead of
+  the inverted `clk_system` of the MiST boards. `Aleste520EX.sdc` constrains the
+  SDRAM pins with the chip timings, so the timing report checks both the
+  commands/writes and the read capture. To try another phase, change
+  `phase_shift3` in `rtl/pll/pll_0002.v` (steps of 231 ps; 4630 ps = 180° is the
+  MiST setting) and check the `SDRAM_CLK` slacks in the report.
+- On some MiSTer modules the DQM pins of the chip are wired to A11/A12 (which
+  is why MiSTer cores set `{SDRAM_DQMH, SDRAM_DQML} = SDRAM_A[12:11]`). The core
+  keeps the row address on A[12:11] after ACTIVE, so the glue puts the byte
+  mask on A[12:11] in every command except ACTIVE and LOAD MODE, where those
+  lines are address bits.
+
 ## Building
 
 ```
@@ -72,7 +91,7 @@ the project folder (Quartus looks for `$readmemh` files there) and then runs
 the usual `sys/build_id.tcl`.
 
 Clocks: `rtl/pll` gives 108/54/27 MHz in phase (SDRAM/arbiter, CPU and bus,
-native video) and `rtl/pll_vid` gives 80 MHz for the CPC video, asynchronous
+native video) plus the SDRAM clock and `rtl/pll_vid` gives 80 MHz for the CPC video, asynchronous
 to the rest (`Aleste520EX.sdc`).
 
 To update the core: commit and publish the change in aleste520ex first, then
