@@ -15,7 +15,7 @@ set_global_assignment -name QIP_FILE rtl/pll_vid.qip
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/native_resync.sv
 
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/reset/reset_controller.sv
-set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/memory/sdram/sdram_wishbone.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/sdram_wishbone.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/mc6845mod.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/video/hdmi_scaler/dual_port_ram.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/aleste-lx/src/components/video/hdmi_scaler/hdmi_scaler.sv

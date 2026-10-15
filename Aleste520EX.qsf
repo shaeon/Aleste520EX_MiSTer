@@ -81,4 +81,8 @@ source files.qip
 # y luego ejecuta sys/build_id.tcl. Va detras de sys.tcl para sustituir su
 # PRE_FLOW_SCRIPT_FILE.
 set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:rtl/pre_flow.tcl"
+
+# Dato de lectura de la SDRAM registrado en el pin (rtl/aleste520ex/rtl/sdram_wishbone.sv):
+# sin el, la ruta del pin a los registros del nucleo no cumple tiempos a 108 MHz.
+set_global_assignment -name VERILOG_MACRO "SDRAM_DQ_REG=1"
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
