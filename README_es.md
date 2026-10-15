@@ -67,11 +67,13 @@ El controlador de la SDRAM (`sdram_wishbone`, 108 MHz, CL2) está dentro del
 núcleo; el pegamento de MiSTer añade dos cosas para que funcione en todos los
 módulos de SDRAM de MiSTer (32, 64 y 128 MB):
 
-- `SDRAM_CLK` es `clk_system` invertido (180°) por un registro DDR, como en
-  las placas MiST, y `Aleste520EX.sdc` restringe los pines de la SDRAM con los
-  tiempos del chip, así que el informe de tiempos comprueba las órdenes y
-  escrituras y la captura de las lecturas. (Está previsto pasarlo a una salida
-  propia del PLL con desfase ajustable.)
+- `SDRAM_CLK` sale de una salida propia del PLL (`rtl/pll`, `outclk_3`,
+  108 MHz, `phase_shift3` = 3472 ps = 135°) por un registro DDR, en vez del
+  `clk_system` invertido de las placas MiST. `Aleste520EX.sdc` restringe los
+  pines de la SDRAM con los tiempos del chip, así que el informe de tiempos
+  comprueba las órdenes y escrituras y la captura de las lecturas. Para probar
+  otro desfase, cambia `phase_shift3` en `rtl/pll/pll_0002.v` (pasos de 231 ps;
+  4630 ps = 180° es el de MiST) y mira las holguras de `SDRAM_CLK` en el informe.
 - En parte de los módulos de MiSTer las patas DQM del chip van a las líneas
   A11/A12 (por eso los cores de MiSTer ponen `{SDRAM_DQMH, SDRAM_DQML} =
   SDRAM_A[12:11]`). El núcleo deja la fila en A[12:11] después de ACTIVE, así
@@ -91,7 +93,7 @@ carpeta del proyecto (Quartus busca ahí los ficheros de `$readmemh`) y luego
 ejecuta el `sys/build_id.tcl` de siempre.
 
 Relojes: `rtl/pll` da 108/54/27 MHz en fase (SDRAM y árbitro, CPU y bus, vídeo
-nativo) y `rtl/pll_vid` da 80 MHz para el vídeo CPC, asíncrono con el resto
+nativo) y el reloj de la SDRAM y `rtl/pll_vid` da 80 MHz para el vídeo CPC, asíncrono con el resto
 (`Aleste520EX.sdc`).
 
 Para actualizar el núcleo: primero se cambia y se publica en aleste520ex,
