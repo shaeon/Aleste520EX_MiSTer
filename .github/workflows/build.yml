@@ -1,0 +1,112 @@
+# Compila el core de MiSTer en GitHub con Quartus 17.0 (imagen Docker
+# raetro/quartus:17.0, la version que usa MiSTer) y deja como resultado el .rbf
+# y los informes. Al subir una etiqueta v* (por ejemplo v1.0) crea ademas una
+# Release con el .rbf.
+#
+# - push / pull request: compila y sube el resultado (pestana Actions).
+# - Lanzar a mano: Actions > Build > Run workflow.
+# - Release: git tag v1.0 && git push origin v1.0
+
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths-ignore:
+      - '**.md'
+      - 'releases/**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'releases/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write          # para crear la Release en las etiquetas v*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+
+    steps:
+      # La imagen de Quartus ocupa unos 6 GB comprimida: se libera sitio en la
+      # maquina de GitHub antes de descargarla.
+      - name: Liberar espacio en disco
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          df -h /
+
+      # aleste520ex va como submodulo, y dentro trae aleste-lx y mist-modules
+      - name: Descargar el repositorio con los submodulos
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Descargar Quartus 17.0
+        run: docker pull raetro/quartus:17.0
+
+      # Compilacion completa: rtl/pre_flow.tcl (tablas .mem y build_id.v),
+      # sintesis, ajuste, ensamblado y tiempos
+      - name: Compilar
+        run: |
+          docker run --rm -v "$GITHUB_WORKSPACE":/build -w /build raetro/quartus:17.0 \
+            quartus_sh --flow compile Aleste520EX
+
+      - name: Detalle de tiempos de la SDRAM
+        if: always()
+        run: |
+          if [ -f output_files/Aleste520EX.sta.rpt ]; then
+            docker run --rm -v "$GITHUB_WORKSPACE":/build -w /build raetro/quartus:17.0 \
+              quartus_sta -t tools/rutas_sdram.tcl
+          fi
+
+      # Resumen de tiempos en la pagina de la ejecucion; aviso si alguna
+      # holgura es negativa (no para la compilacion: el .rbf sale igual)
+      - name: Resumen de tiempos
+        if: always()
+        run: |
+          STA=output_files/Aleste520EX.sta.rpt
+          [ -f "$STA" ] || { echo "No hay informe de tiempos" >> "$GITHUB_STEP_SUMMARY"; exit 0; }
+          {
+            echo "## Tiempos (modelo lento)"
+            echo '```'
+            for s in "Setup Summary" "Hold Summary" "Recovery Summary" "Removal Summary"; do
+              echo "== $s"
+              sed -n "/; $s/,/^$/p" "$STA" | grep '^; [^C-]' | grep -v 'Clock *;' | cut -c1-110
+            done
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if sed -n '/Setup Summary/,/Removal Summary/p' "$STA" | grep -qE ';[[:space:]]*-[0-9]+\.[0-9]+[[:space:]]*;'; then
+            echo "::warning title=Tiempos::Hay holguras negativas: revisa Aleste520EX.sta.rpt y rutas_sdram.txt"
+          fi
+
+      - name: Preparar el resultado
+        if: always()
+        run: |
+          mkdir -p dist
+          DATE=$(date -u +%Y%m%d)
+          [ -f output_files/Aleste520EX.rbf ] && cp output_files/Aleste520EX.rbf "dist/Aleste520EX_${DATE}.rbf"
+          for r in map fit sta flow asm; do
+            [ -f output_files/Aleste520EX.$r.rpt ] && cp output_files/Aleste520EX.$r.rpt dist/
+          done
+          [ -f output_files/rutas_sdram.txt ] && cp output_files/rutas_sdram.txt dist/
+          ls -la dist
+
+      - name: Subir el resultado
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aleste520EX-${{ github.sha }}
+          path: dist/
+          retention-days: 30
+
+      - name: Crear la Release (etiquetas v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/Aleste520EX_*.rbf
+          generate_release_notes: true

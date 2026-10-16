@@ -94,6 +94,12 @@ Clocks: `rtl/pll` gives 108/54/27 MHz in phase (SDRAM/arbiter, CPU and bus,
 native video) plus the SDRAM clock and `rtl/pll_vid` gives 80 MHz for the CPC video, asynchronous
 to the rest (`Aleste520EX.sdc`).
 
+GitHub Actions (`.github/workflows/build.yml`) compiles the core on every push
+with Quartus 17.0 (`raetro/quartus:17.0` Docker image) and keeps the `.rbf`,
+the reports and the SDRAM timing detail (`tools/rutas_sdram.tcl`) as a
+downloadable artifact in the *Actions* tab. Pushing a `v*` tag also creates a
+GitHub Release with the `.rbf`.
+
 To update the core: commit and publish the change in aleste520ex first, then
 `git -C rtl/aleste520ex pull` (or check out the tag) and commit the new
 submodule pointer here. Nothing is ever patched inside `rtl/aleste520ex`.

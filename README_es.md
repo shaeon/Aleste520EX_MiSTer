@@ -96,6 +96,12 @@ Relojes: `rtl/pll` da 108/54/27 MHz en fase (SDRAM y árbitro, CPU y bus, vídeo
 nativo) y el reloj de la SDRAM y `rtl/pll_vid` da 80 MHz para el vídeo CPC, asíncrono con el resto
 (`Aleste520EX.sdc`).
 
+GitHub Actions (`.github/workflows/build.yml`) compila el core en cada `push`
+con Quartus 17.0 (imagen Docker `raetro/quartus:17.0`) y guarda el `.rbf`, los
+informes y el detalle de tiempos de la SDRAM (`tools/rutas_sdram.tcl`) como
+resultado descargable en la pestaña *Actions*. Al subir una etiqueta `v*` crea
+además una Release de GitHub con el `.rbf`.
+
 Para actualizar el núcleo: primero se cambia y se publica en aleste520ex,
 luego `git -C rtl/aleste520ex pull` (o se saca la etiqueta) y aquí se hace
 commit del nuevo puntero del submódulo. Nunca se parchea nada dentro de
