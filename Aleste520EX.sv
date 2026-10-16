@@ -117,9 +117,11 @@ localparam CONF_STR = {
 // Como en MiST: 108/54/27 MHz del mismo PLL y en fase (el nucleo los trata
 // como sincronos entre si) y 80 MHz para el video del modo CPC en un PLL
 // aparte (asincrono; el nucleo sincroniza todos los cruces).
-// clk_sdram: 108 MHz con desfase para el pin SDRAM_CLK (ver SDRAM).
+// clk_sdram: 108 MHz con desfase para el pin SDRAM_CLK; fija el tiempo de las
+// ordenes y escrituras. clk_sdram_rd: 108 MHz algo retrasado respecto a
+// clk_system; recoge el dato de lectura en el pin (SDRAM_DQ_CLK). Ver SDRAM.
 
-wire clk_system, clk_bus, clk_pixel, clk_sdram;
+wire clk_system, clk_bus, clk_pixel, clk_sdram, clk_sdram_rd;
 wire pll_locked;
 
 pll pll
@@ -130,6 +132,7 @@ pll pll
 	.outclk_1(clk_bus),      //  54 MHz
 	.outclk_2(clk_pixel),    //  27 MHz
 	.outclk_3(clk_sdram),    // 108 MHz, desfasado (phase_shift3 en rtl/pll)
+	.outclk_4(clk_sdram_rd), // 108 MHz, algo retrasado: captura de las lecturas (phase_shift4)
 	.locked(pll_locked)
 );
 
@@ -284,6 +287,7 @@ aleste_core core
 	.clk_bus(clk_bus),
 	.clk_pixel(clk_pixel),
 	.clk_vid(clk_vid),
+	.sdram_dq_clk(clk_sdram_rd),
 	.pll_locked(pll_locked),
 	.user_reset(RESET | status[0] | buttons[1]),
 	.boot_mode(status[14:13]),

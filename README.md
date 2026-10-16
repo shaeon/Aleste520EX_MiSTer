@@ -66,12 +66,18 @@ MiSTer glue adds two things so that it works on every MiSTer SDRAM module
 (32, 64 and 128 MB):
 
 - `SDRAM_CLK` comes from its own PLL output (`rtl/pll`, `outclk_3`, 108 MHz,
-  `phase_shift3` = 3472 ps = 135°) through a DDR output register, instead of
-  the inverted `clk_system` of the MiST boards. `Aleste520EX.sdc` constrains the
-  SDRAM pins with the chip timings, so the timing report checks both the
-  commands/writes and the read capture. To try another phase, change
-  `phase_shift3` in `rtl/pll/pll_0002.v` (steps of 231 ps; 4630 ps = 180° is the
-  MiST setting) and check the `SDRAM_CLK` slacks in the report.
+  `phase_shift3` = 4050 ps = 157.5°) through a DDR output register, instead of
+  the inverted `clk_system` of the MiST boards; this sets the timing of the
+  commands and writes.
+- The read data is captured in the pin register (`dq_in`, macro
+  `SDRAM_DQ_REG`) by a second PLL output (`outclk_4`, 108 MHz, `phase_shift4` =
+  1157 ps after `clk_system`, macro `SDRAM_DQ_CLK`), so the read capture point
+  can be tuned without moving the commands. The `.qsf` forces that clock onto a
+  global network (otherwise the fitter cannot pack `dq_in` into the pins).
+  These two values were found with the "SDRAM phase sweep" workflow and work
+  on the 32 MB, 32 MB + 2 MB SRAM and 128 MB modules. `Aleste520EX.sdc`
+  constrains the SDRAM pins with the chip timings, so the timing report checks
+  both sides; `tools/rutas_sdram.tcl` prints the detail.
 - On some MiSTer modules the DQM pins of the chip are wired to A11/A12 (which
   is why MiSTer cores set `{SDRAM_DQMH, SDRAM_DQML} = SDRAM_A[12:11]`). The core
   keeps the row address on A[12:11] after ACTIVE, so the glue puts the byte

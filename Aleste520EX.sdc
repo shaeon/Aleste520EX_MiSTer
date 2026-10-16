@@ -16,8 +16,12 @@ set_clock_groups -asynchronous -group [get_clocks {*|pll_vid|pll_vid_inst|altera
 #   general[0]  clk_system 108 MHz (controlador de la SDRAM, dentro del nucleo)
 #   general[3]  clk_sdram  108 MHz desfasado, sale al pin SDRAM_CLK por un
 #               registro DDR (datain_h = 1, datain_l = 0: el pin copia el reloj)
+#   general[4]  clk_sdram_rd 108 MHz algo retrasado respecto a clk_system:
+#               reloj del registro que recoge el dato de lectura en el pin
+#               (dq_in, macro SDRAM_DQ_CLK)
 set clk_sys   {*|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}
 set clk_sdram {*|pll|pll_inst|altera_pll_i|general[3].gpll~PLL_OUTPUT_COUNTER|divclk}
+set clk_rd    {*|pll|pll_inst|altera_pll_i|general[4].gpll~PLL_OUTPUT_COUNTER|divclk}
 
 create_generated_clock -name SDRAM_CLK -source [get_pins $clk_sdram] [get_ports {SDRAM_CLK}]
 
@@ -32,8 +36,19 @@ set_output_delay -clock SDRAM_CLK -min -0.8 [get_ports {SDRAM_DQ[*] SDRAM_A[*] S
 
 # Lectura: sdram_wishbone saca READ en el flanco N de clk_system y recoge el
 # dato en N+4 (CL2). La palabra la lanza el flanco de SDRAM_CLK de N+2+fase,
-# asi que la captura es el segundo flanco de clk_system tras el lanzamiento,
-# no el primero (que es lo que TimeQuest supondria por defecto). Vale para
-# cualquier desfase entre 0 y 360 grados.
+# asi que la captura es el segundo flanco tras el lanzamiento, no el primero
+# (que es lo que TimeQuest supondria por defecto). Vale para cualquier desfase
+# entre 0 y 360 grados.
+#
+# Sin multiciclo de hold: el de hold por defecto queda un periodo antes del
+# flanco de setup, y eso es justo el riesgo real, que la palabra siguiente
+# (lanzada en N+3+fase) no pise la captura de N+4. Con "-hold -end 1" (como
+# en el .sdc de MiST) la comprobacion de hold se iba a N+2 y no comprobaba
+# nada.
 set_multicycle_path -from [get_clocks {SDRAM_CLK}] -to [get_clocks $clk_sys] -setup -end 2
-set_multicycle_path -from [get_clocks {SDRAM_CLK}] -to [get_clocks $clk_sys] -hold  -end 1
+
+# Con SDRAM_DQ_CLK la recoge clk_sdram_rd en N+4 (mas su retraso), con el mismo
+# multiciclo; vale mientras su retraso sea menor que el desfase de SDRAM_CLK.
+# De dq_in (clk_sdram_rd) al resto del nucleo (clk_system, en N+5) queda la
+# relacion por defecto: un periodo menos el retraso.
+set_multicycle_path -from [get_clocks {SDRAM_CLK}] -to [get_clocks $clk_rd] -setup -end 2

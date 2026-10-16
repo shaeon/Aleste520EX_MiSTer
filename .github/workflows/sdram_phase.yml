@@ -1,23 +1,27 @@
-# Barrido de la fase del reloj de la SDRAM (salida 3 del PLL principal).
+# Barrido de las fases de la SDRAM. Hay dos relojes que ajustar (PLL principal):
+#   - salida 3, SDRAM_CLK: fija el tiempo de las ordenes y escrituras;
+#   - salida 4, clk_sdram_rd: recoge el dato de lectura en el pin.
+# Se fija la primera ("write") y se compila un .rbf por cada valor de la
+# segunda ("read"). Se lanza a mano: Actions > SDRAM phase sweep > Run workflow.
+# Cada .rbf lleva las dos fases en el nombre: Aleste520EX_w4050_r1157.rbf.
 #
-# Compila a la vez un .rbf por cada desfase de la lista, para probarlos en
-# distintos modulos de SDRAM y quedarse con el que funcione en todos. Se lanza
-# a mano: Actions > SDRAM phase sweep > Run workflow (se puede cambiar la
-# lista). Cada .rbf lleva el desfase en el nombre: Aleste520EX_ph3472.rbf.
-#
-# El desfase de serie es 3472 ps (135 grados a 108 MHz). El PLL da pasos de
-# unos 289 ps (1/8 del periodo del VCO de 432 MHz); Quartus redondea al paso
-# mas cercano.
+# El PLL da pasos de unos 289 ps (1/8 del periodo del VCO de 432 MHz); Quartus
+# redondea al paso mas cercano. El retraso de lectura tiene que ser menor que
+# la fase de escritura (lo exige el multiciclo del .sdc).
 
 name: SDRAM phase sweep
 
 on:
   workflow_dispatch:
     inputs:
-      phases:
-        description: 'Desfases en ps (JSON)'
+      write_phase:
+        description: 'Fase de SDRAM_CLK (ordenes y escrituras) en ps'
         required: true
-        default: '[2604, 3183, 3472, 3761, 4050, 4339, 4629]'
+        default: '4050'
+      read_phases:
+        description: 'Retrasos de captura de las lecturas en ps (JSON)'
+        required: true
+        default: '[0, 579, 1157, 1736, 2314, 2893]'
 
 jobs:
   build:
@@ -26,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        phase: ${{ fromJSON(github.event.inputs.phases) }}
+        phase: ${{ fromJSON(github.event.inputs.read_phases) }}
 
     steps:
       - name: Liberar espacio en disco
@@ -39,10 +43,11 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Poner el desfase ${{ matrix.phase }} ps
+      - name: Fases ${{ github.event.inputs.write_phase }} / ${{ matrix.phase }} ps
         run: |
-          sed -i -E 's/(\.phase_shift3\(")[0-9]+ ps/\1${{ matrix.phase }} ps/' rtl/pll/pll_0002.v
-          grep -n 'phase_shift3' rtl/pll/pll_0002.v
+          sed -i -E 's/(\.phase_shift3\(")[0-9]+ ps/\1${{ github.event.inputs.write_phase }} ps/' rtl/pll/pll_0002.v
+          sed -i -E 's/(\.phase_shift4\(")[0-9]+ ps/\1${{ matrix.phase }} ps/' rtl/pll/pll_0002.v
+          grep -n 'phase_shift[34]' rtl/pll/pll_0002.v
 
       - name: Descargar Quartus 17.0
         run: docker pull raetro/quartus:17.0
@@ -66,7 +71,7 @@ jobs:
           STA=output_files/Aleste520EX.sta.rpt
           [ -f "$STA" ] || exit 0
           {
-            echo "## Desfase ${{ matrix.phase }} ps"
+            echo "## Escritura ${{ github.event.inputs.write_phase }} ps, lectura ${{ matrix.phase }} ps"
             echo '```'
             for s in "Setup Summary" "Hold Summary"; do
               echo "== $s"
@@ -79,17 +84,17 @@ jobs:
         if: always()
         run: |
           mkdir -p dist
-          [ -f output_files/Aleste520EX.rbf ] && cp output_files/Aleste520EX.rbf "dist/Aleste520EX_ph${{ matrix.phase }}.rbf"
+          [ -f output_files/Aleste520EX.rbf ] && cp output_files/Aleste520EX.rbf "dist/Aleste520EX_w${{ github.event.inputs.write_phase }}_r${{ matrix.phase }}.rbf"
           for r in sta fit; do
-            [ -f output_files/Aleste520EX.$r.rpt ] && cp output_files/Aleste520EX.$r.rpt "dist/Aleste520EX_ph${{ matrix.phase }}.$r.rpt"
+            [ -f output_files/Aleste520EX.$r.rpt ] && cp output_files/Aleste520EX.$r.rpt "dist/Aleste520EX_w${{ github.event.inputs.write_phase }}_r${{ matrix.phase }}.$r.rpt"
           done
-          [ -f output_files/rutas_sdram.txt ] && cp output_files/rutas_sdram.txt "dist/rutas_sdram_ph${{ matrix.phase }}.txt"
+          [ -f output_files/rutas_sdram.txt ] && cp output_files/rutas_sdram.txt "dist/rutas_sdram_w${{ github.event.inputs.write_phase }}_r${{ matrix.phase }}.txt"
           ls -la dist
 
       - name: Subir el resultado
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Aleste520EX_ph${{ matrix.phase }}
+          name: Aleste520EX_w${{ github.event.inputs.write_phase }}_r${{ matrix.phase }}
           path: dist/
           retention-days: 30

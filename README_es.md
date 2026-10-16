@@ -68,12 +68,19 @@ núcleo; el pegamento de MiSTer añade dos cosas para que funcione en todos los
 módulos de SDRAM de MiSTer (32, 64 y 128 MB):
 
 - `SDRAM_CLK` sale de una salida propia del PLL (`rtl/pll`, `outclk_3`,
-  108 MHz, `phase_shift3` = 3472 ps = 135°) por un registro DDR, en vez del
-  `clk_system` invertido de las placas MiST. `Aleste520EX.sdc` restringe los
-  pines de la SDRAM con los tiempos del chip, así que el informe de tiempos
-  comprueba las órdenes y escrituras y la captura de las lecturas. Para probar
-  otro desfase, cambia `phase_shift3` en `rtl/pll/pll_0002.v` (pasos de 231 ps;
-  4630 ps = 180° es el de MiST) y mira las holguras de `SDRAM_CLK` en el informe.
+  108 MHz, `phase_shift3` = 4050 ps = 157,5°) por un registro DDR, en vez del
+  `clk_system` invertido de las placas MiST; fija el tiempo de las órdenes y
+  escrituras.
+- El dato de lectura se recoge en el registro del pin (`dq_in`, macro
+  `SDRAM_DQ_REG`) con otra salida del PLL (`outclk_4`, 108 MHz, `phase_shift4`
+  = 1157 ps después de `clk_system`, macro `SDRAM_DQ_CLK`), así que el punto de
+  captura de las lecturas se ajusta sin mover las órdenes. El `.qsf` obliga a
+  que ese reloj vaya en una red global (si no, el fitter no puede meter `dq_in`
+  en los pines). Los dos valores salieron del flujo "SDRAM phase sweep" y
+  funcionan con los módulos de 32 MB, 32 MB + 2 MB de SRAM y 128 MB.
+  `Aleste520EX.sdc` restringe los pines de la SDRAM con los tiempos del chip,
+  así que el informe de tiempos comprueba los dos lados; `tools/rutas_sdram.tcl`
+  saca el detalle.
 - En parte de los módulos de MiSTer las patas DQM del chip van a las líneas
   A11/A12 (por eso los cores de MiSTer ponen `{SDRAM_DQMH, SDRAM_DQML} =
   SDRAM_A[12:11]`). El núcleo deja la fila en A[12:11] después de ACTIVE, así
