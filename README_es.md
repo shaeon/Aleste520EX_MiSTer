@@ -74,9 +74,11 @@ módulos de SDRAM de MiSTer (32, 64 y 128 MB):
 - El dato de lectura se recoge en el registro del pin (`dq_in`, macro
   `SDRAM_DQ_REG`) con otra salida del PLL (`outclk_4`, 108 MHz, `phase_shift4`
   = 1157 ps después de `clk_system`, macro `SDRAM_DQ_CLK`), así que el punto de
-  captura de las lecturas se ajusta sin mover las órdenes. El `.qsf` obliga a
-  que ese reloj vaya en una red global (si no, el fitter no puede meter `dq_in`
-  en los pines). Los dos valores salieron del flujo "SDRAM phase sweep" y
+  captura de las lecturas se ajusta sin mover las órdenes; un segundo registro
+  en `clk_system` pasa luego el dato al resto del núcleo (las lecturas tardan
+  dos ciclos más que en MiST). El `.qsf` obliga a que `clk_system`, el reloj de
+  captura y el del vídeo vayan en redes globales (si no, el fitter no puede
+  meter los registros de la SDRAM en los pines). Los dos valores salieron del flujo "SDRAM phase sweep" y
   funcionan con los módulos de 32 MB, 32 MB + 2 MB de SRAM y 128 MB.
   `Aleste520EX.sdc` restringe los pines de la SDRAM con los tiempos del chip,
   así que el informe de tiempos comprueba los dos lados; `tools/rutas_sdram.tcl`

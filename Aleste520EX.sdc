@@ -38,17 +38,17 @@ set_output_delay -clock SDRAM_CLK -min -0.8 [get_ports {SDRAM_DQ[*] SDRAM_A[*] S
 # dato en N+4 (CL2). La palabra la lanza el flanco de SDRAM_CLK de N+2+fase,
 # asi que la captura es el segundo flanco tras el lanzamiento, no el primero
 # (que es lo que TimeQuest supondria por defecto). Vale para cualquier desfase
-# entre 0 y 360 grados.
-#
-# Sin multiciclo de hold: el de hold por defecto queda un periodo antes del
-# flanco de setup, y eso es justo el riesgo real, que la palabra siguiente
-# (lanzada en N+3+fase) no pise la captura de N+4. Con "-hold -end 1" (como
-# en el .sdc de MiST) la comprobacion de hold se iba a N+2 y no comprobaba
-# nada.
+# entre 0 y 360 grados. El multiciclo de hold (-end 1) es el que acompana
+# siempre a un setup de 2: devuelve la comprobacion de hold a su sitio
+# normal. Sin el, TimeQuest pide que el dato tarde casi un ciclo mas y el
+# fitter mete cadenas de retardo de varios ns en los pines SDRAM_DQ, que se
+# comen el setup de las lecturas.
 set_multicycle_path -from [get_clocks {SDRAM_CLK}] -to [get_clocks $clk_sys] -setup -end 2
+set_multicycle_path -from [get_clocks {SDRAM_CLK}] -to [get_clocks $clk_sys] -hold  -end 1
 
 # Con SDRAM_DQ_CLK la recoge clk_sdram_rd en N+4 (mas su retraso), con el mismo
 # multiciclo; vale mientras su retraso sea menor que el desfase de SDRAM_CLK.
-# De dq_in (clk_sdram_rd) al resto del nucleo (clk_system, en N+5) queda la
-# relacion por defecto: un periodo menos el retraso.
+# De dq_in (clk_sdram_rd) a dq_in_s (clk_system, en N+5) queda la relacion por
+# defecto: un periodo menos el retraso.
 set_multicycle_path -from [get_clocks {SDRAM_CLK}] -to [get_clocks $clk_rd] -setup -end 2
+set_multicycle_path -from [get_clocks {SDRAM_CLK}] -to [get_clocks $clk_rd] -hold  -end 1

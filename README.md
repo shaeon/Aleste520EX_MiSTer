@@ -72,8 +72,11 @@ MiSTer glue adds two things so that it works on every MiSTer SDRAM module
 - The read data is captured in the pin register (`dq_in`, macro
   `SDRAM_DQ_REG`) by a second PLL output (`outclk_4`, 108 MHz, `phase_shift4` =
   1157 ps after `clk_system`, macro `SDRAM_DQ_CLK`), so the read capture point
-  can be tuned without moving the commands. The `.qsf` forces that clock onto a
-  global network (otherwise the fitter cannot pack `dq_in` into the pins).
+  can be tuned without moving the commands; a second register in `clk_system`
+  then hands the data to the rest of the core (reads take two cycles more than
+  on MiST). The `.qsf` forces `clk_system`, the capture clock and the video
+  clock onto global networks (otherwise the fitter cannot pack the SDRAM
+  registers into the pins).
   These two values were found with the "SDRAM phase sweep" workflow and work
   on the 32 MB, 32 MB + 2 MB SRAM and 128 MB modules. `Aleste520EX.sdc`
   constrains the SDRAM pins with the chip timings, so the timing report checks
