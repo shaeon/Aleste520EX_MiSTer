@@ -55,7 +55,4 @@ set_global_assignment -name VERILOG_FILE rtl/aleste520ex/rtl/cpc/amx_mouse.v
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/cpc/tzxplayer.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/cpc/u765.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/YM2149.sv
-set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/lx/lx_sys.sv
-set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/lx/lx_ms2.sv
-set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/lx/lx_dma.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/aleste520ex/rtl/aleste_core.sv

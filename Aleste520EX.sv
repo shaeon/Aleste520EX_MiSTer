@@ -78,7 +78,7 @@ localparam CONF_STR = {
 	"S1,DSKIMG,Mount Drive B:;",
 	"F3,CDTTZX,Load Tape;",
 	"-;",
-	"O[14:13],CPC boot,Aleste 520EX,AMSTRAD (Shift),Aleste BIOS,Aleste LX;",
+	"O[14:13],CPC boot,Aleste 520EX,AMSTRAD (Shift),Aleste BIOS;",
 	"O[18:17],CPU speed,4 MHz,8 MHz (turbo),16 MHz;",
 	"-;",
 	"P1,Video;",

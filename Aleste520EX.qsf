@@ -87,9 +87,6 @@ set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:rtl/pre_flow.tcl"
 set_global_assignment -name VERILOG_MACRO "SDRAM_DQ_REG=1"
 # ... y con su propio reloj de captura (clk_sdram_rd, salida 4 del PLL)
 set_global_assignment -name VERILOG_MACRO "SDRAM_DQ_CLK=1"
-
-# Modo Aleste LX (OSD CPC boot = Aleste LX): la BIOS del Aleste LX en modo nativo
-set_global_assignment -name VERILOG_MACRO "ALESTE_LX=1"
 # clk_sdram_rd en una red de reloj global: con solo 16 destinos el fitter lo
 # ponia en una regional que no llega a los pines de SDRAM_DQ (bancos de la
 # derecha), y entonces no podia meter dq_in en los registros del pin
